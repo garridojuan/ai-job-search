@@ -1,0 +1,14 @@
+#!/bin/sh
+# Blocks a commit that would put personal data into this public fork.
+# Installed with: python3 tools/personal_data_guard.py --install-hook
+# Bypass (only when the remote is genuinely private):
+#   ALLOW_PERSONAL_DATA=1 git commit ...
+repo="$(git rev-parse --show-toplevel)" || exit 0
+for py in python3 python py; do
+  if command -v "$py" >/dev/null 2>&1; then
+    "$py" "$repo/tools/personal_data_guard.py" --staged || exit 1
+    exit 0
+  fi
+done
+echo "pre-commit: no python interpreter found - personal-data guard SKIPPED" >&2
+exit 0

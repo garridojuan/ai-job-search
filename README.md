@@ -86,6 +86,12 @@ cd ai-job-search
 > use a **private repository** with this repo as `upstream` instead — the two-minute
 > recipe is in [SETUP.md section 8](SETUP.md#8-pulling-upstream-updates-into-your-fork),
 > and every update workflow works identically. Fork only to contribute.
+>
+> If you are already on a public fork, install the personal-data guard
+> (`python3 tools/personal_data_guard.py --install-hook`) — it blocks any commit or
+> push that would publish your profile. CI's placeholder check is gated to the
+> upstream repo, so a fork has no protection without it. See
+> [tools/README_PRIVACY_GUARD.md](tools/README_PRIVACY_GUARD.md).
 
 ### 2. Install job search tools
 
