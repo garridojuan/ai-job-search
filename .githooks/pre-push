@@ -1,0 +1,21 @@
+#!/bin/sh
+# Last line of defence: checks everything a pushed tree would publish, so a
+# commit made with --no-verify still cannot reach a public remote unnoticed.
+# stdin lines are: <local ref> <local sha> <remote ref> <remote sha>
+repo="$(git rev-parse --show-toplevel)" || exit 0
+guard=""
+for py in python3 python py; do
+  if command -v "$py" >/dev/null 2>&1; then guard="$py"; break; fi
+done
+if [ -z "$guard" ]; then
+  echo "pre-push: no python interpreter found - personal-data guard SKIPPED" >&2
+  exit 0
+fi
+zero="0000000000000000000000000000000000000000"
+status=0
+while read -r _local_ref local_sha _remote_ref _remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue   # branch deletion, nothing published
+  [ -z "$local_sha" ] && continue
+  "$guard" "$repo/tools/personal_data_guard.py" --rev "$local_sha" || status=1
+done
+exit $status
