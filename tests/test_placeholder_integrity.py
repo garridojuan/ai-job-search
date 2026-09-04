@@ -27,6 +27,15 @@ PROFILE = REPO / ".claude" / "skills" / "job-application-assistant" / "01-candid
 CV_SENTINELS = ["\\name{[First]}{[Last]}", "\\email{[your.email@example.com]}"]
 PROFILE_SENTINEL = "[YOUR_EMAIL]"
 
+# A personalized fork has, by design, destroyed these placeholders - that is what
+# /setup does. The pristine-template assertions below only mean something on the
+# upstream template, exactly like ci.yml's placeholder-integrity job, which is
+# gated with `if: github.repository == 'MadsLorentzen/ai-job-search'`. Without the
+# same gate here, `python -m unittest` fails on every fork that has been set up.
+PERSONALIZED = "[YOUR_NAME]" not in (REPO / "CLAUDE.md").read_text(encoding="utf-8")
+PRISTINE_ONLY = unittest.skipIf(PERSONALIZED, "profile is personalized (/setup has run)")
+
+
 
 def personalize_cv(text: str) -> str:
     """Apply /setup Step 3.7's documented edit: replace placeholder personal
@@ -58,10 +67,12 @@ class TestCvSentinelsAreDataLocated(unittest.TestCase):
             "ci.yml must assert the sentinel inside the \\email{} data line",
         )
 
+    @PRISTINE_ONLY
     def test_pristine_cv_carries_both_sentinels(self):
         for sentinel in CV_SENTINELS:
             self.assertIn(sentinel, self.cv)
 
+    @PRISTINE_ONLY
     def test_setup_edit_destroys_the_sentinels(self):
         personalized = personalize_cv(self.cv)
         self.assertNotEqual(personalized, self.cv, "the simulated /setup edit must change the file")
@@ -84,6 +95,7 @@ class TestProfileSentinelIsDataLocated(unittest.TestCase):
             "a header comment the model may leave untouched",
         )
 
+    @PRISTINE_ONLY
     def test_pristine_profile_carries_the_sentinel(self):
         self.assertIn(PROFILE_SENTINEL, PROFILE.read_text(encoding="utf-8"))
 

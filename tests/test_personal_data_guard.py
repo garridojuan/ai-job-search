@@ -28,6 +28,15 @@ import personal_data_guard as guard  # noqa: E402  (imported for its rule tables
 # Any bracketed token - `[YOUR_NAME]`, `[First]`, `[your.email@example.com]`.
 PLACEHOLDER = re.compile(r"\[[^\]\n]{1,60}\]")
 
+# A personalized fork has, by design, destroyed these placeholders - that is what
+# /setup does. The pristine-template assertions below only mean something on the
+# upstream template, exactly like ci.yml's placeholder-integrity job, which is
+# gated with `if: github.repository == 'MadsLorentzen/ai-job-search'`. Without the
+# same gate here, `python -m unittest` fails on every fork that has been set up.
+PERSONALIZED = "[YOUR_NAME]" not in (REPO_ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+PRISTINE_ONLY = unittest.skipIf(PERSONALIZED, "profile is personalized (/setup has run)")
+
+
 
 def personalize(text: str) -> str:
     """Stand in for /setup: every placeholder becomes real data."""
@@ -35,6 +44,7 @@ def personalize(text: str) -> str:
 
 
 class TestPristineTemplateIsQuiet(unittest.TestCase):
+    @PRISTINE_ONLY
     def test_worktree_audit_passes_on_the_shipped_files(self):
         result = subprocess.run(
             [sys.executable, str(GUARD_SCRIPT), "--worktree"],
@@ -63,6 +73,10 @@ class TestPristineTemplateIsQuiet(unittest.TestCase):
 class TestSentinelsAreDataLocated(unittest.TestCase):
     """Each sentinel must live in the data /setup rewrites - see F28."""
 
+    # Pristine-template assertions: a personalized fork has legitimately
+    # destroyed the sentinels, which is the guard firing, not a rule-table bug.
+
+    @PRISTINE_ONLY
     def test_every_protected_file_exists_and_carries_its_sentinels(self):
         for path, sentinels in guard.PROTECTED_SENTINELS.items():
             target = REPO_ROOT / path
@@ -71,6 +85,7 @@ class TestSentinelsAreDataLocated(unittest.TestCase):
             for sentinel in sentinels:
                 self.assertIn(sentinel, content, f"{path} no longer contains `{sentinel}`")
 
+    @PRISTINE_ONLY
     def test_personalizing_a_file_destroys_all_of_its_sentinels(self):
         for path, sentinels in guard.PROTECTED_SENTINELS.items():
             content = (REPO_ROOT / path).read_text(encoding="utf-8")
